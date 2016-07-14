@@ -179,7 +179,7 @@ class pNFW(object):
             case_smaller_than_one   =   1.0 / (1.0 - X**2) * ( -1.0 + 2.0/np.sqrt(1.0-X**2) * np.arctanh( np.sqrt((1.0 - X)/(1.0 + X)) ) )
             case_larger_than_one    =   1.0 / (X**2 - 1.0) * (  1.0 - 2.0/np.sqrt(X**2-1.0) * np.arctan(  np.sqrt((X - 1.0)/(1.0 + X)) ) )
             # return_me
-            return_me               =   np.ones(len(X)) * np.nan
+            return_me               =   np.ones(np.shape(X)) * np.nan
             return_me[(X < 1.0)]    =   case_smaller_than_one[(X < 1.0) ]
             return_me[(X > 1.0)]    =   case_larger_than_one[ (X > 1.0) ]
             return_me[(X== 1.0)]    =   1.0 / 3.0
@@ -188,6 +188,21 @@ class pNFW(object):
         sigma   =   self.sigma_s * f2d(X = xi / xi_s)
         # return
         return sigma
+
+    # ---
+    # prokect_map
+    # ---
+    def Sigma_XY(self, XX, YY):
+        """
+        Follows eq~36 in Umetsu+15.
+        """
+        # sanitize
+        XX          =       np.array(XX, ndmin=1)
+        YY          =       np.array(YY, ndmin=1)
+        # derive zeta
+        zeta        =       np.sqrt( (self.jj * XX**2 + 2 * self.kk * XX * YY + self.ll * YY**2) / self.ff )
+        # return    
+        return self.Sigma(zeta = zeta)
 
 
 if   __name__ == "__main__":
@@ -210,4 +225,8 @@ if   __name__ == "__main__":
     hist        =   np.histogram(halo_q_proj, bins = q_edges)[0]
     import matplotlib.pyplot as pyplt
     pyplt.plot(q_bins, hist, "k-")
+    pyplt.show()
+
+    XX, YY = np.meshgrid(np.linspace(-1,1,100), np.linspace(-1,1,100))
+    pyplt.imshow(A.Sigma_XY(XX, YY))
     pyplt.show()
