@@ -144,7 +144,30 @@ class pNFW(object):
         self.fgeo       =       self.e_para / np.sqrt(self.q_proj)
         self.sigma_s    =       2 * self.rhos * self.rs / np.sqrt( self.ff )
 
-        # derive psi, which is on the plan of sky of observers
+        # derive psi, which is on the plan of sky of observer
+        if      self.kk     ==  0.0:
+            if   self.jj >= self.ll:
+                self.psi    =   - pi / 2.0
+            else:
+                self.psi    =     0.0
+
+        elif    self.kk     >   0.0:
+            if   self.jj == self.ll:
+                self.psi    =   0.5 * np.arctan( np.inf )
+            elif self.jj >  self.ll:
+                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
+            else:
+                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
+
+        else:
+            if   self.jj == self.ll:
+                self.psi    =   0.5 * np.arctan(-np.inf )
+            elif self.jj >  self.ll:
+                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
+            else:
+                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
+            
+        '''
         if          self.kk     ==  0.0:
             self.psi    =   0.0
         elif       self.jj == self.ll  and  self.kk   >   0.0:
@@ -153,7 +176,8 @@ class pNFW(object):
             self.psi    =   0.5 * np.arctan(-np.inf )
         else:
             self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
-
+        '''
+        
         # return
         return
 
