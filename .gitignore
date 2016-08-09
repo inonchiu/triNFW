@@ -2,3 +2,9 @@
 .ipynb_checkpoints/triNFW_example-checkpoint.ipynb
 
 *.pyc
+
+build/lib/triNFW/__init__.py
+
+build/lib/triNFW/triNFW.py
+
+build/lib/triNFW/Qpdf.py
