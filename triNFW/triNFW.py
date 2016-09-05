@@ -73,6 +73,7 @@ class pNFW(object):
                  qb      = 1.0,
                  theta   = 0.0,
                  phi     = 0.0,
+                 psi     = 0.0,
                  cosmo   = cosmo):
         # sanity check
         if  not ( (zd >  0.0) and (mass > 0.0) and (concen > 0.0) ):
@@ -96,7 +97,7 @@ class pNFW(object):
         self.qb         =       float(qb)
         self.theta      =       float(theta)
         self.phi        =       float(phi)
-        #self.psi        =       float(psi)
+        self.psi        =       float(psi)
 
         # cosmology properties
         self.da         =       cosdist.angular_diameter_distance(self.zd, **self.cosmo)
@@ -144,28 +145,29 @@ class pNFW(object):
         self.fgeo       =       self.e_para / np.sqrt(self.q_proj)
         self.sigma_s    =       2 * self.rhos * self.rs / np.sqrt( self.ff )
 
-        # derive psi, which is on the plan of sky of observer
+        # derive delta_psi, which is the positional angle of the projected major axis on the plan of sky with respect to the coordinate
+        # BEFORE the third rotation (psi) applied.
         if      self.kk     ==  0.0:
             if   self.jj >= self.ll:
-                self.psi    =   - pi / 2.0
+                self.delta_psi    =   - pi / 2.0
             else:
-                self.psi    =     0.0
+                self.delta_psi    =     0.0
 
         elif    self.kk     >   0.0:
             if   self.jj == self.ll:
-                self.psi    =   0.5 * np.arctan( np.inf )
+                self.delta_psi    =   0.5 * np.arctan( np.inf )
             elif self.jj >  self.ll:
-                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
+                self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
             else:
-                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
+                self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
 
         else:
             if   self.jj == self.ll:
-                self.psi    =   0.5 * np.arctan(-np.inf )
+                self.delta_psi    =   0.5 * np.arctan(-np.inf )
             elif self.jj >  self.ll:
-                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
+                self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
             else:
-                self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
+                self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
             
         '''
         if          self.kk     ==  0.0:
@@ -178,6 +180,13 @@ class pNFW(object):
             self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
         '''
         
+        # After the rotation of third Euler angle-- psi
+        # More informatin please see the `Sigma_XY` method.
+        self.j2prime    =       ( self.jj * np.cos(self.psi)**2.0 + 2.0 * self.kk * np.cos(self.psi) * np.sin(self.psi) + self.ll * np.sin(self.psi)**2.0 )
+        self.k2prime    =       ( np.cos(self.psi) * np.sin(self.psi) * (self.ll - self.jj) + self.kk * (np.cos(self.psi)**2.0 - np.sin(self.psi)**2.0)   )
+        self.l2prime    =       ( self.jj * np.sin(self.psi)**2.0 - 2.0 * self.kk * np.cos(self.psi) * np.sin(self.psi) + self.ll * np.cos(self.psi)**2.0 )
+
+
         # return
         return
 
@@ -218,13 +227,36 @@ class pNFW(object):
     # ---
     def Sigma_XY(self, XX, YY):
         """
-        Follows eq~36 in Umetsu+15.
+        Follows eq~29 in Umetsu+15.
+
+        However, eq~29 in Umetsu+15 describes the ellipse which is after the first two Euler angles (phi and theta).
+        One needs additional third Euler angle to describe the rotation on the observer's sky.
+
+        Denote the coordinate system after the rotation of (phi and theta) by X' and Y'. On the other hand, we denote the
+        coordinate system of the observer's sky after the third rotation angle (psi) applied. The (X'', Y'') are the axes after
+        rotating the axes (X', Y') by the psi angle. One will get:
+
+        | X' |   | cos(psi) -sin(psi) |   | X'' |
+        |    | = |                    | * |     |
+        | Y' |   | sin(psi)  cos(psi) |   | Y'' |
+
+        Last, replacing (X', Y') by the observer's coordinate, (X'', Y''), eq~29 in Umetsu+15 becomes
+
+        zeta**2 = 1 / f * (j2prime * X''**2 + 2 * k2prime * X''Y'' + l2prime * Y''**2),
+
+        where
+
+        j2prime = ( j * cos(psi)**2 + 2 * k * cos(psi) * sin(psi) + l * sin(psi)**2 )
+        k2prime = ( cos(psi) * sin(psi) * (l - j) + k * (cos(psi)**2 - sin(psi)**2) )
+        l2prime = ( j * sin(psi)**2 - 2 * k * cos(psi) * sin(psi) + l * cos(psi)**2 )
+
         """
         # sanitize
         XX          =       np.array(XX, ndmin=1)
         YY          =       np.array(YY, ndmin=1)
         # derive zeta
-        zeta        =       np.sqrt( (self.jj * XX**2 + 2 * self.kk * XX * YY + self.ll * YY**2) / self.ff )
+        #zeta        =       np.sqrt( (self.jj * XX**2 + 2 * self.kk * XX * YY + self.ll * YY**2) / self.ff )
+        zeta        =       np.sqrt( (self.j2prime * XX**2 + 2 * self.k2prime * XX * YY + self.l2prime * YY**2) / self.ff )
         # return    
         return self.Sigma(zeta = zeta)
 
