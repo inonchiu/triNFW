@@ -4,4 +4,6 @@ This module is used to calculate the properties of NFW models with triaxial shap
 
 # Installition
 
+  pip install git+git://github.com/inonchiu/triNFW.git
+
 # Example
