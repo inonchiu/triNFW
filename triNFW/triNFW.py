@@ -144,7 +144,10 @@ class pNFW(object):
         self.e_para     =       np.sqrt( self.q_proj / (self.qa * self.qb) ) / self.ff**(3.0/4.0)
         self.fgeo       =       self.e_para / np.sqrt(self.q_proj)
         self.sigma_s    =       2 * self.rhos * self.rs / np.sqrt( self.ff )
-        self.triaxiality=       (1.0 - self.qb**2.0)/(1.0 - self.qa**2.0)
+        try:
+            self.triaxiality=       (1.0 - self.qb**2.0)/(1.0 - self.qa**2.0)
+        except ZeroDivisionError:
+            self.triaxiality=       0.0
 
         # derive delta_psi, which is the positional angle of the projected major axis on the plan of sky with respect to the coordinate
         # BEFORE the third rotation (psi) applied.
