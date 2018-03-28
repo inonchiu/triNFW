@@ -45,7 +45,7 @@ def quan_sample(data, biweight_c = 9.0, verbose = True, plotme = False):
     return_min          =       np.ma.min( data )
     if  have_astropy:
         return_bi_loc   =       astrostats.biweight_location(data, c = biweight_c)
-        return_bi_scl   =       astrostats.biweight_midvariance(data, c = biweight_c)
+        return_bi_scl   =       astrostats.biweight_scale(data, c = biweight_c)
         return_mad      =       astrostats.median_absolute_deviation(data)
         return_mad_std  =       astrostats.mad_std(data)
     else:
