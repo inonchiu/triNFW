@@ -12,11 +12,7 @@ from math import *
 import cosmolopy.distance as cosdist
 import cosmolopy.density as cosdens
 import cosmolopy.constants as cosconst
-#import scipy.optimize as optimize
-#import scipy.integrate as integrate
-#import scipy.stats as stats
-#import scipy.interpolate as interpolate
-
+import warnings
 
 # ---
 # Set a default cosmology
@@ -78,13 +74,10 @@ class pNFW(object):
         # sanity check
         if  not ( (zd >  0.0) and (mass > 0.0) and (concen > 0.0) ):
             raise ValueError("The input halo params are wrong, (zd, mass, concen):", zd, mass, concen, ".")
-
         if  wrt not in ["crit", "mean"]:
             raise NameError("The input wrt", wrt, "has to be crit or mean.")
-
         if  not  0 < qa <= qb <= 1.0:
             raise ValueError("The input axis ratios, qa, qb, are wrong, (qa, qb):", qa, qb, ".")
-
         # initiate
         self.zd         =       float(zd)
         self.mass       =       float(mass)
@@ -98,17 +91,14 @@ class pNFW(object):
         self.theta      =       float(theta)
         self.phi        =       float(phi)
         self.psi        =       float(psi)
-
         # cosmology properties
         self.da         =       cosdist.angular_diameter_distance(self.zd, **self.cosmo)
         self.ez         =       cosdist.e_z(self.zd, **self.cosmo)
         self.rho_crit   =       cosdens.cosmo_densities(**self.cosmo)[0] * self.ez**2    # Msun/Mpc3
         self.rho_mean   =       self.rho_crit * cosdens.omega_M_z(self.zd, **self.cosmo) # Msun/Mpc3
         self.arcmin2mpc =       1.0 / 60.0 * pi / 180.0  * self.da                       # Mpc/arcmin
-
         # set up the compatibility between overden and wrt
         if     self.overden  <  0.0:  self.wrt    =       "vir"
-
         # set up halo radius / rhos[Msun/Mpc^3] / rs[Mpc]
         if   self.wrt   ==      "mean":
             self.radmpc           =   ( self.mass / (4.0 * pi / 3.0 * self.qa * self.qb * self.overden * self.rho_mean) )**(1.0/3.0)
@@ -130,8 +120,6 @@ class pNFW(object):
             self._factorO         =   self.vir_overden * self.rho_mean
             self.rhos             =   self.vir_overden * self.rho_mean * (self.concen**3 / 3.0) / ( log(1.0 + self.concen) - self.concen/(1.0 + self.concen) )
             self.rs               =   self.radmpc / self.concen
-
-
         # coordinate transformation - it follows Umetsu+15
         self.jj         =       np.cos(self.theta)**2 * ( np.cos(self.phi)**2 / self.qa**2 + np.sin(self.phi)**2 / self.qb**2 ) + \
                                 np.sin(self.theta)**2 / ( self.qa**2 * self.qb**2 )
@@ -156,7 +144,6 @@ class pNFW(object):
                 self.delta_psi    =   - pi / 2.0
             else:
                 self.delta_psi    =     0.0
-
         elif    self.kk     >   0.0:
             if   self.jj == self.ll:
                 self.delta_psi    =   0.5 * np.arctan( np.inf )
@@ -164,7 +151,6 @@ class pNFW(object):
                 self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
             else:
                 self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
-
         else:
             if   self.jj == self.ll:
                 self.delta_psi    =   0.5 * np.arctan(-np.inf )
@@ -172,7 +158,6 @@ class pNFW(object):
                 self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) ) - pi / 2.0
             else:
                 self.delta_psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
-            
         '''
         if          self.kk     ==  0.0:
             self.psi    =   0.0
@@ -183,18 +168,13 @@ class pNFW(object):
         else:
             self.psi    =   0.5 * np.arctan( 2 * self.kk / (self.jj - self.ll) )
         '''
-        
         # After the rotation of third Euler angle-- psi
         # More informatin please see the `Sigma_XY` method.
         self.j2prime    =       ( self.jj * np.cos(self.psi)**2.0 + 2.0 * self.kk * np.cos(self.psi) * np.sin(self.psi) + self.ll * np.sin(self.psi)**2.0 )
         self.k2prime    =       ( np.cos(self.psi) * np.sin(self.psi) * (self.ll - self.jj) + self.kk * (np.cos(self.psi)**2.0 - np.sin(self.psi)**2.0)   )
         self.l2prime    =       ( self.jj * np.sin(self.psi)**2.0 - 2.0 * self.kk * np.cos(self.psi) * np.sin(self.psi) + self.ll * np.cos(self.psi)**2.0 )
-
-
         # return
         return
-
-
     # ---
     # profile
     # ---
@@ -221,11 +201,13 @@ class pNFW(object):
             return_me[(X > 1.0)]    =   case_larger_than_one[ (X > 1.0) ]
             return_me[(X== 1.0)]    =   1.0 / 3.0
             return return_me
-        # derive sigma
-        sigma   =   self.sigma_s * f2d(X = xi / xi_s)
+        # calc sigma while surpressing warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # derive sigma
+            sigma   =   self.sigma_s * f2d(X = xi / xi_s)
         # return
         return sigma
-
     # ---
     # prokect_map
     # ---
